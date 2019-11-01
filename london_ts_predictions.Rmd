@@ -1,0 +1,84 @@
+---
+title: "london_ts"
+output: html_document
+---
+
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(zoo))
+suppressPackageStartupMessages(library(forecast))
+```
+
+# Questions to answer
+
+* What are the expected total number of visitors in the next four quarters?
+* What countries are expected to have the highest number of visitors in the next four quarters?
+* Visitors from which countries are expected to spend the most in the next 4 time periods?
+* 
+
+# Total number of visitors in next quarters
+
+```{r}
+london <- read.csv("international-visitors-london-raw.csv")
+```
+
+```{r}
+london %>%
+  group_by(year,quarter)%>%
+  summarize(total=sum(visits)) %>%
+  unite(yearquarter,year,quarter,sep="-")%>%
+  ggplot(aes(yearquarter,total))+
+  geom_line(group=1)
+  #geom_smooth()
+```
+
+```{r}
+london %>%
+  filter(year==2018) %>%
+  group_by(market,year)%>%
+  summarize(tot = sum(visits)) %>%
+  arrange(desc(tot))
+```
+
+
+
+```{r}
+cor
+```
+
+
+```{r}
+london_ts <- london %>%
+  select(year,quarter,market,visits) %>%
+  unite(yearquarter,year,quarter,sep="-")
+
+london_ts$yearquarter <- as.yearqtr(london_ts$yearquarter,format="%Y-Q%q")
+
+```
+
+```{r}
+london_ts <- london_ts %>%
+  group_by(yearquarter,market) %>%
+  summarize(n=sum(visits)) %>%
+  filter(market == "USA") %>%
+  select(yearquarter,n)
+  #ggplot(aes(yearquarter,n))+
+  #geom_line()
+```
+
+```{r}
+plot(london_ts)
+```
+
+
+
+```{r}
+lond <- ts(london_ts,frequency = 4)
+
+plot(forecast(lond))
+```
+
+```{r}
+lond
+```
+

@@ -1,0 +1,159 @@
+---
+title: "London_Visitors"
+output: html_document
+---
+
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(tidyquant))
+```
+
+# Questions to answer:
+
+- What year saw the highest number of tourists in total
+- What country spends the most
+
+```{r}
+london <- read.csv("international-visitors-london-raw.csv")
+```
+
+```{r}
+london_yq <- london %>%
+  filter(market == "USA") %>%
+  group_by(year,quarter) %>%
+  summarize(s_visits = sum(visits)) %>%
+  #filter(quarter == "Q3") %>%
+  unite(yearquarter,year,quarter,sep="-") #%>%
+  #ggplot(aes(yearquarter,s_visits))+
+  #geom_line(group=1)
+  #geom_smooth() +
+  #geom_ma()
+
+london_yq
+
+london_yq$yearquarter <- as.yearqtr(london_yq$yearquarter,format="%Y-Q%q")
+
+london_yq %>%
+  ggplot(aes(yearquarter,s_visits))+
+  geom_smooth()
+  #geom_ma()+
+  #geom_point()
+```
+
+
+```{r}
+london %>%
+  group_by(purpose) %>%
+  summarize(mean(nights),mean(visits))
+```
+
+
+```{r}
+london %>%
+  group_by(year,quarter,market,purpose) %>%
+  summarize(total_visits=sum(visits),total_nights = sum(nights),total_spend = sum(spend)) %>%
+  #arrange(desc(total_spend)) %>%
+  mutate(spend_per_visit = total_spend/total_visits) %>%
+  #arrange(desc(spend_per_visit)) %>%
+  filter(market %in% c("Italy"),quarter == "Q2",year%in%c("2012","2013","2014","2015","2016","2017","2018")) %>%
+  group_by(year,quarter,market)%>%
+  summarize(total_visits_by_country=sum(total_visits)) %>%
+  #summarize(mean_spend = mean(spend_per_visit)) %>%
+  unite(yearquarter,year,quarter,sep="-") %>%
+  ggplot(aes(yearquarter,total_visits_by_country,group=1,fill=market)) +
+  geom_smooth(span=0.6)+
+  #geom_col(position="dodge2")+
+  theme(axis.text.x=element_text(angle=-45, hjust=0.001))
+```
+
+
+```{r}
+london %>%
+  filter(market == "USA" & year == 2004)
+```
+
+```{r}
+london %>%
+  group_by(market,year) %>%
+  summarize(n=n()) %>%
+  arrange(desc(n))
+```
+
+
+```{r}
+london %>%
+  group_by(market,year,mode) %>%
+  summarize(total_visits = sum(visits)) %>%
+  arrange(desc(total_visits))
+```
+
+# Modes of transport
+
+```{r}
+london %>%
+  filter(market == "Belgium") %>%
+  group_by(mode) %>%
+  summarize(sum(visits))
+```
+
+# Spend
+
+```{r}
+
+london %>%
+  group_by(market,year) %>%
+  summarize(avg_spend = sum(spend)) %>%
+  arrange(desc(avg_spend))
+
+```
+
+# Spending by gulf countries
+
+```{r}
+london %>%
+  group_by(year,market) %>%
+  summarize(total_visits = sum(visits),total_spend = sum(spend)) %>%
+  mutate(spend_over_visits = total_spend/total_visits) %>%
+  arrange(desc(spend_over_visits)) %>%
+  #mutate(gulf = if_else(market %in% c("Saudi Arabia","United Arab Emirates","Kuwait","Bahrain","Qatar","Oman"),as.character(market),"Non-Gulf")) %>%
+  #filter(spend_over_visits > 2) %>%
+  #group_by(gulf) %>%
+  #summarize(n=n())
+  mutate(gulf = if_else(market %in% c("Saudi Arabia","United Arab Emirates","Kuwait"),"Gulf","Non-Gulf")) %>%
+  filter(gulf == "Gulf") %>%
+  ggplot(aes(year,spend_over_visits,fill=market)) +
+  geom_col(position="dodge")
+```
+
+```{r}
+london %>%
+  filter(mode == "Tunnel") %>%
+  group_by(year,quarter,market) %>%
+  summarize(t_visits = sum(visits)) %>%
+  arrange(desc(t_visits))
+```
+
+```{r}
+
+london %>%
+  filter(market == "USA") %>%
+  group_by(year,purpose) %>%
+  summarize(total_visits = sum(visits)) %>%
+  arrange(desc(total_visits)) %>%
+  ggplot(aes(year,total_visits,fill=purpose)) +
+  geom_col(position = "dodge")
+
+```
+
+```{r}
+
+london %>%
+  group_by(year) %>%
+  summarise(t_visits = sum(visits)) %>%
+  arrange(desc(t_visits)) %>%
+  ggplot(aes(year,t_visits)) +
+  geom_line()
+
+```
+
